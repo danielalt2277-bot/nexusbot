@@ -1,5 +1,19 @@
+const fs = require('fs');
+
+if (!fs.existsSync('.env')) {
+    fs.writeFileSync('.env', 'BOT_TOKEN=YOUR_BOT_TOKEN_HERE');
+    console.log('The .env file was not found, so a new one was created.');
+    console.log('Please open the .env file and replace "YOUR_BOT_TOKEN_HERE" with your actual Discord bot token.');
+    process.exit(0);
+}
+
 require('dotenv').config();
 const { Client, GatewayIntentBits, SlashCommandBuilder } = require('discord.js');
+
+if (!process.env.BOT_TOKEN || process.env.BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
+    console.log('Bot token is not configured. Please open the .env file and add your bot token.');
+    process.exit(0);
+}
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
