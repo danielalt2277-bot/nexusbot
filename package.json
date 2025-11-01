@@ -4,25 +4,27 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/danielalt2277-bot/nexusbot.git"
+    "url": "git+https://github.com/danielalt2277-bot/bumper.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/danielalt2277-bot/nexusbot/issues"
+    "url": "https://github.com/danielalt2277-bot/bumper/issues"
   },
-  "homepage": "https://github.com/danielalt2277-bot/nexusbot#readme",
+  "homepage": "https://github.com/danielalt2277-bot/bumper#readme",
   "dependencies": {
+    "debug": "^4.4.3",
     "discord.js": "^14.23.2",
-    "dotenv": "^17.2.3"
-  },
-  "devDependencies": {
-    "jest": "^30.2.0"
+    "discord.js-selfbot-v13": "^3.7.1",
+    "dotenv": "^17.2.3",
+    "lowdb": "^7.0.1",
+    "ms": "^2.1.3",
+    "uuid": "^13.0.0"
   }
 }
