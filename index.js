@@ -193,26 +193,11 @@ function startVouching(userId, channelId, targetUserId) {
                 return;
             }
 
-            user.services.autoVouch.lastVouches = user.services.autoVouch.lastVouches || [];
-            let vouch;
-            do {
-                vouch = userVouches[Math.floor(Math.random() * userVouches.length)];
-            } while (user.services.autoVouch.lastVouches.includes(vouch) && userVouches.length > 3);
-            user.services.autoVouch.lastVouches.push(vouch);
-            if (user.services.autoVouch.lastVouches.length > 3) user.services.autoVouch.lastVouches.shift();
-
-            user.services.autoVouch.lastTokens = user.services.autoVouch.lastTokens || [];
-            let token;
-            do {
-                token = tokens[Math.floor(Math.random() * tokens.length)];
-            } while (user.services.autoVouch.lastTokens.includes(token) && tokens.length > 3);
-            user.services.autoVouch.lastTokens.push(token);
-            if (user.services.autoVouch.lastTokens.length > 3) user.services.autoVouch.lastTokens.shift();
+            const vouch = userVouches[Math.floor(Math.random() * userVouches.length)];
+            const token = tokens[Math.floor(Math.random() * tokens.length)];
 
             const targetUserIds = targetUserId.split(',').map(id => id.trim());
-            const nextIndex = user.services.autoVouch.nextUserIdIndex || 0;
-            const currentTargetId = targetUserIds[nextIndex];
-            user.services.autoVouch.nextUserIdIndex = (nextIndex + 1) % targetUserIds.length;
+            const currentTargetId = targetUserIds[Math.floor(Math.random() * targetUserIds.length)];
             await db.write();
 
             const finalVouch = vouch.replace(/<@useid>/g, `<@${currentTargetId}>`);
@@ -268,9 +253,14 @@ function startTrading(userId, channelId) {
             } while (user.services.autotrade.lastTokens.includes(token) && tokens.length > 3);
             user.services.autotrade.lastTokens.push(token);
             if (user.services.autotrade.lastTokens.length > 3) user.services.autotrade.lastTokens.shift();
+
+            const channelIds = channelId.split(',').map(id => id.trim());
+            const nextIndex = user.services.autotrade.nextChannelIndex || 0;
+            const currentChannelId = channelIds[nextIndex];
+            user.services.autotrade.nextChannelIndex = (nextIndex + 1) % channelIds.length;
             await db.write();
 
-            addToMessageQueue(token, channelId, { content: message }, 'AutoTrade');
+            addToMessageQueue(token, currentChannelId, { content: message }, 'AutoTrade');
 
             const delay = Math.floor(Math.random() * (600000 - 180000 + 1)) + 180000; // 3-10 mins
             console.log(`[AutoTrade] Next trade message for user ${userId} in ${(delay / 60000).toFixed(2)} minutes.`);
@@ -307,21 +297,8 @@ function startChatting(userId, channelId) {
                 return;
             }
 
-            user.services.autochat.lastMessages = user.services.autochat.lastMessages || [];
-            let message;
-            do {
-                message = messages[Math.floor(Math.random() * messages.length)];
-            } while (user.services.autochat.lastMessages.includes(message) && messages.length > 3);
-            user.services.autochat.lastMessages.push(message);
-            if (user.services.autochat.lastMessages.length > 3) user.services.autochat.lastMessages.shift();
-
-            user.services.autochat.lastTokens = user.services.autochat.lastTokens || [];
-            let token;
-            do {
-                token = tokens[Math.floor(Math.random() * tokens.length)];
-            } while (user.services.autochat.lastTokens.includes(token) && tokens.length > 3);
-            user.services.autochat.lastTokens.push(token);
-            if (user.services.autochat.lastTokens.length > 3) user.services.autochat.lastTokens.shift();
+            const message = messages[Math.floor(Math.random() * messages.length)];
+            const token = tokens[Math.floor(Math.random() * tokens.length)];
             await db.write();
 
             addToMessageQueue(token, channelId, { content: message }, 'AutoChat');
@@ -379,7 +356,7 @@ async function initializeClientPool() {
 const commands = [
     { name: 'auto-bump', description: 'Starts the auto-bumping process.', options: [{ name: 'key', type: 3, description: 'Your license key.', required: true }, { name: 'channel_id', type: 3, description: 'The channel ID for bumping.', required: true }, { name: 'token', type: 3, description: 'Your authorization token.', required: true }] },
     { name: 'autovouch', description: 'Starts the auto-vouching process.', options: [{ name: 'key', type: 3, description: 'Your license key.', required: true }, { name: 'channel_id', type: 3, description: 'The channel ID for vouching.', required: true }, { name: 'user_id', type: 3, description: 'The user ID(s) to vouch for, separated by commas.', required: true }] },
-    { name: 'autotrade', description: 'Starts the auto-trading process.', options: [{ name: 'key', type: 3, description: 'Your license key.', required: true }, { name: 'channel_id', type: 3, description: 'The channel ID for trading messages.', required: true }] },
+    { name: 'autotrade', description: 'Starts the auto-trading process.', options: [{ name: 'key', type: 3, description: 'Your license key.', required: true }, { name: 'channel_id', type: 3, description: 'The channel ID(s) for trading messages, separated by commas.', required: true }] },
     { name: 'autochat', description: 'Starts the auto-chatting process.', options: [{ name: 'key', type: 3, description: 'Your license key.', required: true }, { name: 'channel_id', type: 3, description: 'The channel ID for chatting messages.', required: true }] },
     {
         name: 'key-gen',
@@ -463,15 +440,20 @@ client.on('interactionCreate', async interaction => {
                 userId: interaction.options.getString('user_id'),
                 isActive: true,
                 lastVouch: null,
-                lastToken: null,
-                nextUserIdIndex: 0
+                lastToken: null
             };
             await db.write();
             startVouching(userId, user.services.autoVouch.channelId, user.services.autoVouch.userId);
             await interaction.reply({ content: `Auto-vouching has started.`, flags: 64 });
         } else if (commandName === 'autotrade') {
             const user = findUser() || createUser();
-            user.services.autotrade = { channelId: interaction.options.getString('channel_id'), isActive: true, lastMessage: null, lastToken: null };
+            user.services.autotrade = {
+                channelId: interaction.options.getString('channel_id'),
+                isActive: true,
+                lastMessage: null,
+                lastToken: null,
+                nextChannelIndex: 0
+            };
             await db.write();
             startTrading(userId, user.services.autotrade.channelId);
             await interaction.reply({ content: `Auto-trading has started.`, flags: 64 });
@@ -560,7 +542,8 @@ client.on('interactionCreate', async interaction => {
             }
             if (user.services.autotrade) {
                 const s = user.services.autotrade;
-                embed.addFields({ name: 'Auto-Trade', value: `Status: **${s.isActive ? 'Active' : 'Inactive'}**\nChannel: <#${s.channelId}>` });
+                const channelIds = s.channelId.split(',').map(id => `<#${id.trim()}>`).join(', ');
+                embed.addFields({ name: 'Auto-Trade', value: `Status: **${s.isActive ? 'Active' : 'Inactive'}**\nChannels: ${channelIds}` });
                 rows.push(new ActionRowBuilder().addComponents(
                     new ButtonBuilder().setCustomId('manage_trade_start').setLabel('Start').setStyle(ButtonStyle.Success).setDisabled(s.isActive),
                     new ButtonBuilder().setCustomId('manage_trade_stop').setLabel('Stop').setStyle(ButtonStyle.Danger).setDisabled(!s.isActive),
@@ -719,7 +702,6 @@ client.on('interactionCreate', async interaction => {
             const keysPerPage = 5;
             const allKeys = db.data.keys;
             const totalPages = Math.ceil(allKeys.length / keysPerPage) || 1;
-_
             const keysOnPage = allKeys.slice(currentPage * keysPerPage, (currentPage + 1) * keysPerPage);
 
             const newEmbed = new EmbedBuilder().setTitle('All Generated Keys').setDescription(keysOnPage.map(k => `**Key:** \`${k.key}\`\n**Used by:** ${k.usedBy ? `<@${k.usedBy}>` : 'N/A'}\n**Expires:** ${k.expiresAt ? `<t:${Math.floor(new Date(k.expiresAt).getTime() / 1000)}:R>` : 'Never'}`).join('\n\n') || 'No keys.').setFooter({ text: `Page ${currentPage + 1} of ${totalPages}` });
@@ -761,6 +743,7 @@ _
                     startVouching(userId, channelId, targetUserId);
                 }
             } else if (service === 'trade') {
+                serviceData.nextChannelIndex = 0;
                 if (serviceData.isActive) {
                     stopTrading(userId);
                     startTrading(userId, channelId);
