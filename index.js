@@ -303,7 +303,7 @@ function startChatting(userId, channelId) {
 
             addToMessageQueue(token, channelId, { content: message }, 'AutoChat');
 
-            const delay = Math.floor(Math.random() * (600000 - 180000 + 1)) + 180000; // 3-10 mins
+            const delay = Math.floor(Math.random() * (180000 - 60000 + 1)) + 60000; // 1-3 mins
             console.log(`[AutoChat] Next chat message for user ${userId} in ${(delay / 60000).toFixed(2)} minutes.`);
             activeChats[userId] = { timeout: setTimeout(run, delay) };
         } catch (error) {
@@ -635,8 +635,13 @@ client.on('interactionCreate', async interaction => {
             }
             if (user.services.autoVouch) {
                 const s = user.services.autoVouch;
-                manageEmbed.addFields({ name: 'Auto-Vouch', value: `Status: **${s.isActive ? 'Active' : 'Inactive'}**` });
-                rows.push(new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('manage_vouch_start').setLabel('Start Vouch').setStyle(ButtonStyle.Success).setDisabled(s.isActive), new ButtonBuilder().setCustomId('manage_vouch_stop').setLabel('Stop Vouch').setStyle(ButtonStyle.Danger).setDisabled(!s.isActive)));
+                const userIds = s.userId.split(',').map(id => `<@${id.trim()}>`).join(', ');
+                embed.addFields({ name: 'Auto-Vouch', value: `Status: **${s.isActive ? 'Active' : 'Inactive'}**\nChannel: <#${s.channelId}>\nUsers: ${userIds}` });
+                rows.push(new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId('manage_vouch_start').setLabel('Start').setStyle(ButtonStyle.Success).setDisabled(s.isActive),
+                    new ButtonBuilder().setCustomId('manage_vouch_stop').setLabel('Stop').setStyle(ButtonStyle.Danger).setDisabled(!s.isActive),
+                    new ButtonBuilder().setCustomId('edit_vouch').setLabel('Edit').setStyle(ButtonStyle.Primary)
+                ));
             }
             if (user.services.autotrade) {
                 const s = user.services.autotrade;
@@ -702,6 +707,7 @@ client.on('interactionCreate', async interaction => {
             const keysPerPage = 5;
             const allKeys = db.data.keys;
             const totalPages = Math.ceil(allKeys.length / keysPerPage) || 1;
+_
             const keysOnPage = allKeys.slice(currentPage * keysPerPage, (currentPage + 1) * keysPerPage);
 
             const newEmbed = new EmbedBuilder().setTitle('All Generated Keys').setDescription(keysOnPage.map(k => `**Key:** \`${k.key}\`\n**Used by:** ${k.usedBy ? `<@${k.usedBy}>` : 'N/A'}\n**Expires:** ${k.expiresAt ? `<t:${Math.floor(new Date(k.expiresAt).getTime() / 1000)}:R>` : 'Never'}`).join('\n\n') || 'No keys.').setFooter({ text: `Page ${currentPage + 1} of ${totalPages}` });
